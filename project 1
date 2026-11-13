@@ -1,0 +1,728 @@
+
+# ============================================================
+# PROJECT: SALES TREND VISUALIZATION
+# Technologies: Python, Pandas, NumPy, Matplotlib,
+#               Seaborn and Plotly
+# ============================================================
+
+# 1. IMPORT LIBRARIES
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+
+from plotly.subplots import make_subplots
+
+import os
+
+# ============================================================
+# 2. PROJECT SETTINGS
+# ============================================================
+
+np.random.seed(42)
+
+OUTPUT_FOLDER = "Sales_Trend_Output"
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+sns.set_theme(style="whitegrid")
+
+print("=" * 60)
+print("       SALES TREND VISUALIZATION PROJECT")
+print("=" * 60)
+
+
+# ============================================================
+# 3. CREATE SALES DATASET
+# ============================================================
+
+number_of_records = 1000
+
+dates = pd.date_range(
+    start="2024-01-01",
+    end="2025-12-31",
+    periods=number_of_records
+)
+
+products = [
+    "Laptop",
+    "Mobile",
+    "Tablet",
+    "Headphones",
+    "Keyboard",
+    "Mouse",
+    "Monitor",
+    "Printer"
+]
+
+categories = {
+    "Laptop": "Electronics",
+    "Mobile": "Electronics",
+    "Tablet": "Electronics",
+    "Headphones": "Accessories",
+    "Keyboard": "Accessories",
+    "Mouse": "Accessories",
+    "Monitor": "Electronics",
+    "Printer": "Office Equipment"
+}
+
+prices = {
+    "Laptop": 55000,
+    "Mobile": 25000,
+    "Tablet": 18000,
+    "Headphones": 2000,
+    "Keyboard": 1200,
+    "Mouse": 700,
+    "Monitor": 12000,
+    "Printer": 9000
+}
+
+regions = [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Central"
+]
+
+sales_data = []
+
+for i in range(number_of_records):
+
+    product = np.random.choice(products)
+
+    quantity = np.random.randint(1, 10)
+
+    unit_price = prices[product]
+
+    discount = np.random.choice([0, 5, 10, 15])
+
+    revenue = quantity * unit_price * (1 - discount / 100)
+
+    unit_cost = unit_price * np.random.uniform(0.55, 0.80)
+
+    profit = revenue - (quantity * unit_cost)
+
+    sales_data.append({
+
+        "Order_ID": f"ORD{i+1:04d}",
+
+        "Date": dates[i],
+
+        "Product": product,
+
+        "Category": categories[product],
+
+        "Region": np.random.choice(regions),
+
+        "Quantity": quantity,
+
+        "Unit_Price": unit_price,
+
+        "Discount": discount,
+
+        "Revenue": round(revenue, 2),
+
+        "Profit": round(profit, 2)
+
+    })
+
+
+df = pd.DataFrame(sales_data)
+
+df["Date"] = pd.to_datetime(df["Date"])
+
+df["Month"] = df["Date"].dt.month_name()
+
+df["Year"] = df["Date"].dt.year
+
+df["Month_Year"] = df["Date"].dt.to_period("M").astype(str)
+
+
+# ============================================================
+# 4. SAVE DATASET
+# ============================================================
+
+csv_path = os.path.join(
+    OUTPUT_FOLDER,
+    "sales_data.csv"
+)
+
+df.to_csv(csv_path, index=False)
+
+print("\nDataset created successfully!")
+
+print("\nFirst 5 Records:")
+print(df.head())
+
+
+# ============================================================
+# 5. DATA ANALYSIS
+# ============================================================
+
+total_revenue = df["Revenue"].sum()
+
+total_profit = df["Profit"].sum()
+
+total_orders = df["Order_ID"].nunique()
+
+total_quantity = df["Quantity"].sum()
+
+average_order_value = total_revenue / total_orders
+
+profit_margin = (total_profit / total_revenue) * 100
+
+print("\n" + "=" * 50)
+print("             SALES SUMMARY")
+print("=" * 50)
+
+print(f"Total Revenue       : Rs. {total_revenue:,.2f}")
+
+print(f"Total Profit        : Rs. {total_profit:,.2f}")
+
+print(f"Total Orders        : {total_orders}")
+
+print(f"Total Quantity Sold : {total_quantity}")
+
+print(f"Average Order Value : Rs. {average_order_value:,.2f}")
+
+print(f"Profit Margin       : {profit_margin:.2f}%")
+
+
+# ============================================================
+# 6. MONTHLY SALES TREND
+# ============================================================
+
+monthly_sales = (
+    df.groupby("Month_Year")["Revenue"]
+    .sum()
+    .reset_index()
+)
+
+monthly_sales = monthly_sales.sort_values("Month_Year")
+
+plt.figure(figsize=(14, 6))
+
+sns.lineplot(
+    data=monthly_sales,
+    x="Month_Year",
+    y="Revenue",
+    marker="o",
+    linewidth=2
+)
+
+plt.title(
+    "Monthly Sales Trend",
+    fontsize=18,
+    fontweight="bold"
+)
+
+plt.xlabel("Month")
+
+plt.ylabel("Revenue (Rs.)")
+
+plt.xticks(rotation=45)
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "monthly_sales_trend.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 7. YEARLY SALES ANALYSIS
+# ============================================================
+
+yearly_sales = (
+    df.groupby("Year")["Revenue"]
+    .sum()
+    .reset_index()
+)
+
+plt.figure(figsize=(9, 5))
+
+sns.barplot(
+    data=yearly_sales,
+    x="Year",
+    y="Revenue"
+)
+
+plt.title("Yearly Sales Performance")
+
+plt.xlabel("Year")
+
+plt.ylabel("Total Revenue (Rs.)")
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "yearly_sales.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 8. TOP SELLING PRODUCTS
+# ============================================================
+
+product_sales = (
+    df.groupby("Product")["Revenue"]
+    .sum()
+    .sort_values(ascending=False)
+    .reset_index()
+)
+
+plt.figure(figsize=(11, 6))
+
+sns.barplot(
+    data=product_sales,
+    x="Revenue",
+    y="Product"
+)
+
+plt.title("Top Selling Products")
+
+plt.xlabel("Revenue (Rs.)")
+
+plt.ylabel("Products")
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "top_products.png")
+)
+
+plt.show()
+
+print("\nTop 5 Products:")
+print(product_sales.head())
+
+
+# ============================================================
+# 9. CATEGORY-WISE SALES ANALYSIS
+# ============================================================
+
+category_sales = (
+    df.groupby("Category")["Revenue"]
+    .sum()
+    .reset_index()
+)
+
+plt.figure(figsize=(8, 6))
+
+plt.pie(
+    category_sales["Revenue"],
+    labels=category_sales["Category"],
+    autopct="%1.1f%%",
+    startangle=90
+)
+
+plt.title("Category-Wise Sales Distribution")
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "category_sales.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 10. REGION-WISE SALES ANALYSIS
+# ============================================================
+
+region_sales = (
+    df.groupby("Region")["Revenue"]
+    .sum()
+    .reset_index()
+    .sort_values("Revenue", ascending=False)
+)
+
+plt.figure(figsize=(9, 5))
+
+sns.barplot(
+    data=region_sales,
+    x="Region",
+    y="Revenue"
+)
+
+plt.title("Region-Wise Sales Analysis")
+
+plt.xlabel("Region")
+
+plt.ylabel("Revenue (Rs.)")
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "region_sales.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 11. PROFIT ANALYSIS
+# ============================================================
+
+profit_analysis = (
+    df.groupby("Category")["Profit"]
+    .sum()
+    .reset_index()
+)
+
+plt.figure(figsize=(9, 5))
+
+sns.barplot(
+    data=profit_analysis,
+    x="Category",
+    y="Profit"
+)
+
+plt.title("Category-Wise Profit Analysis")
+
+plt.xlabel("Category")
+
+plt.ylabel("Profit (Rs.)")
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "profit_analysis.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 12. QUANTITY SOLD ANALYSIS
+# ============================================================
+
+quantity_analysis = (
+    df.groupby("Product")["Quantity"]
+    .sum()
+    .reset_index()
+    .sort_values("Quantity", ascending=False)
+)
+
+plt.figure(figsize=(10, 5))
+
+sns.barplot(
+    data=quantity_analysis,
+    x="Product",
+    y="Quantity"
+)
+
+plt.title("Product-Wise Quantity Sold")
+
+plt.xticks(rotation=30)
+
+plt.tight_layout()
+
+plt.savefig(
+    os.path.join(OUTPUT_FOLDER, "quantity_analysis.png")
+)
+
+plt.show()
+
+
+# ============================================================
+# 13. INTERACTIVE SALES DASHBOARD USING PLOTLY
+# ============================================================
+
+fig = make_subplots(
+
+    rows=3,
+
+    cols=2,
+
+    subplot_titles=(
+
+        "Monthly Sales Trend",
+
+        "Yearly Sales Performance",
+
+        "Top Products",
+
+        "Category-Wise Sales",
+
+        "Region-Wise Revenue",
+
+        "Category-Wise Profit"
+
+    ),
+
+    specs=[
+
+        [{"type": "scatter"}, {"type": "bar"}],
+
+        [{"type": "bar"}, {"type": "pie"}],
+
+        [{"type": "bar"}, {"type": "bar"}]
+
+    ]
+
+)
+
+
+# Monthly sales line chart
+
+fig.add_trace(
+
+    go.Scatter(
+
+        x=monthly_sales["Month_Year"],
+
+        y=monthly_sales["Revenue"],
+
+        mode="lines+markers",
+
+        name="Monthly Revenue"
+
+    ),
+
+    row=1,
+
+    col=1
+
+)
+
+
+# Yearly sales bar chart
+
+fig.add_trace(
+
+    go.Bar(
+
+        x=yearly_sales["Year"].astype(str),
+
+        y=yearly_sales["Revenue"],
+
+        name="Yearly Revenue"
+
+    ),
+
+    row=1,
+
+    col=2
+
+)
+
+
+# Top products
+
+fig.add_trace(
+
+    go.Bar(
+
+        x=product_sales["Product"],
+
+        y=product_sales["Revenue"],
+
+        name="Product Revenue"
+
+    ),
+
+    row=2,
+
+    col=1
+
+)
+
+
+# Category pie chart
+
+fig.add_trace(
+
+    go.Pie(
+
+        labels=category_sales["Category"],
+
+        values=category_sales["Revenue"],
+
+        name="Categories"
+
+    ),
+
+    row=2,
+
+    col=2
+
+)
+
+
+# Region sales
+
+fig.add_trace(
+
+    go.Bar(
+
+        x=region_sales["Region"],
+
+        y=region_sales["Revenue"],
+
+        name="Region Revenue"
+
+    ),
+
+    row=3,
+
+    col=1
+
+)
+
+
+# Profit chart
+
+fig.add_trace(
+
+    go.Bar(
+
+        x=profit_analysis["Category"],
+
+        y=profit_analysis["Profit"],
+
+        name="Category Profit"
+
+    ),
+
+    row=3,
+
+    col=2
+
+)
+
+
+fig.update_layout(
+
+    title={
+
+        "text": "SALES TREND VISUALIZATION DASHBOARD",
+
+        "x": 0.5,
+
+        "xanchor": "center"
+
+    },
+
+    height=1200,
+
+    showlegend=False,
+
+    template="plotly_white"
+
+)
+
+
+# Save interactive dashboard
+
+dashboard_path = os.path.join(
+
+    OUTPUT_FOLDER,
+
+    "sales_dashboard.html"
+
+)
+
+fig.write_html(dashboard_path)
+
+fig.show()
+
+
+# ============================================================
+# 14. EXPORT SALES REPORT
+# ============================================================
+
+report = pd.DataFrame({
+
+    "Metric": [
+
+        "Total Revenue",
+
+        "Total Profit",
+
+        "Total Orders",
+
+        "Total Quantity",
+
+        "Average Order Value",
+
+        "Profit Margin"
+
+    ],
+
+    "Value": [
+
+        round(total_revenue, 2),
+
+        round(total_profit, 2),
+
+        total_orders,
+
+        total_quantity,
+
+        round(average_order_value, 2),
+
+        round(profit_margin, 2)
+
+    ]
+
+})
+
+report.to_csv(
+
+    os.path.join(OUTPUT_FOLDER, "sales_summary_report.csv"),
+
+    index=False
+
+)
+
+
+# ============================================================
+# 15. FINAL OUTPUT
+# ============================================================
+
+print("\n" + "=" * 60)
+
+print("       PROJECT COMPLETED SUCCESSFULLY!")
+
+print("=" * 60)
+
+print("\nGenerated Files:")
+
+print("1. sales_data.csv")
+
+print("2. monthly_sales_trend.png")
+
+print("3. yearly_sales.png")
+
+print("4. top_products.png")
+
+print("5. category_sales.png")
+
+print("6. region_sales.png")
+
+print("7. profit_analysis.png")
+
+print("8. quantity_analysis.png")
+
+print("9. sales_dashboard.html")
+
+print("10. sales_summary_report.csv")
+
+print("\nAll files are saved inside:")
+
+print(os.path.abspath(OUTPUT_FOLDER))
+
+print("\nOpen sales_dashboard.html in your browser")
+
+print("to view your interactive dashboard.")
+
+print("\nTHANK YOU!")
